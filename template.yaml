@@ -27,13 +27,6 @@ Parameters:
     Default: 'https://www.learn-ia.app'
     Description: Origen permitido para CORS
 
-Globals:
-  Api:
-    Cors:
-      AllowOrigin: !Sub "'${CorsAllowOrigin}'"
-      AllowMethods: "'GET,POST,OPTIONS'"
-      AllowHeaders: "'Content-Type,Authorization,X-User-Id'"
-
 Resources:
   SearchApiFunction:
     Type: AWS::Serverless::Function
@@ -66,7 +59,7 @@ Resources:
           EMBEDDING_MODEL: amazon.titan-embed-text-v2:0
           EMBEDDING_DIM: 1024
           # CORS
-          CORS_ALLOW_ORIGIN: !Ref CorsAllowOrigin
+          CORS_ORIGIN: !Ref CorsAllowOrigin
       Policies:
         - AWSLambdaBasicExecutionRole
         - Statement:
@@ -80,35 +73,37 @@ Resources:
                 - cloudwatch:PutMetricData
               Resource: '*'
       Events:
-        SearchApi:
+        ProxyApi:
           Type: HttpApi
           Properties:
-            Path: /api/{proxy+}
+            Path: /{proxy+}
             Method: ANY
-            ApiId: !Ref SearchHttpApi
-        OptionsApi:
-          Type: HttpApi
-          Properties:
-            Path: /api/{proxy+}
-            Method: OPTIONS
             ApiId: !Ref SearchHttpApi
 
   SearchHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      StageName: Prod
+      StageName: $default
       CorsConfiguration:
         AllowOrigins:
           - !Ref CorsAllowOrigin
         AllowMethods:
           - GET
           - POST
+          - PUT
+          - DELETE
           - OPTIONS
         AllowHeaders:
           - Content-Type
           - Authorization
           - X-User-Id
+          - x-user-id
+          - user-id
+          - Origin
+          - Accept
+          - X-Requested-With
         MaxAge: 600
+        AllowCredentials: false
 
   CertificatesLayer:
     Type: AWS::Serverless::LayerVersion
