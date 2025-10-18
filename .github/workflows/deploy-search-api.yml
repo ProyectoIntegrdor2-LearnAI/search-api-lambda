@@ -51,7 +51,7 @@ jobs:
             --no-fail-on-empty-changeset \
             --parameter-overrides \
               Environment=dev \
-              AtlasUri="${{ secrets.ATLAS_URI }}" \
+              AtlasUri="${{ secrets.ATLAS_URI_DEV }}" \
               PostgresHost="${{ secrets.POSTGRES_HOST }}" \
               PostgresPassword="${{ secrets.POSTGRES_PASSWORD }}" \
               CorsAllowOrigin="https://www.learn-ia.app"
