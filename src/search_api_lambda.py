@@ -151,6 +151,8 @@ def _parse_json_body(event: Dict[str, Any], default: Optional[Dict[str, Any]] = 
 
     body = event["body"]
     if event.get("isBase64Encoded"):
+        if base64 is None:
+            raise SearchApiError("Base64 decoding no está disponible", 500)
         body = body.encode("utf-8")
         body = base64.b64decode(body).decode("utf-8")
 
