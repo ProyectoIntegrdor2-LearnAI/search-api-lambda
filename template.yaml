@@ -97,8 +97,6 @@ Resources:
           - Content-Type
           - Authorization
           - X-User-Id
-          - x-user-id
-          - user-id
           - Origin
           - Accept
           - X-Requested-With
