@@ -101,7 +101,6 @@ Resources:
           - Accept
           - X-Requested-With
         MaxAge: 600
-        AllowCredentials: false
 
   CertificatesLayer:
     Type: AWS::Serverless::LayerVersion
