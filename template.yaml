@@ -27,6 +27,13 @@ Parameters:
     Default: 'https://www.learn-ia.app'
     Description: Origen permitido para CORS
 
+Globals:
+  Api:
+    Cors:
+      AllowOrigin: !Sub "'${CorsAllowOrigin}'"
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-User-Id,Origin,Accept,X-Requested-With'"
+
 Resources:
   SearchApiFunction:
     Type: AWS::Serverless::Function
@@ -74,33 +81,20 @@ Resources:
               Resource: '*'
       Events:
         ProxyApi:
-          Type: HttpApi
+          Type: Api
           Properties:
             Path: /{proxy+}
             Method: ANY
-            ApiId: !Ref SearchHttpApi
+            RestApiId: !Ref SearchApi
 
-  SearchHttpApi:
-    Type: AWS::Serverless::HttpApi
+  SearchApi:
+    Type: AWS::Serverless::Api
     Properties:
-      StageName: $default
-      CorsConfiguration:
-        AllowOrigins:
-          - !Ref CorsAllowOrigin
-        AllowMethods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - OPTIONS
-        AllowHeaders:
-          - Content-Type
-          - Authorization
-          - X-User-Id
-          - Origin
-          - Accept
-          - X-Requested-With
-        MaxAge: 600
+      StageName: Prod
+      Cors:
+        AllowOrigin: !Sub "'${CorsAllowOrigin}'"
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-User-Id,Origin,Accept,X-Requested-With'"
 
   CertificatesLayer:
     Type: AWS::Serverless::LayerVersion
@@ -114,7 +108,7 @@ Resources:
 Outputs:
   SearchApiUrl:
     Description: URL base del API de búsqueda
-    Value: !Sub 'https://${SearchHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+    Value: !Sub 'https://${SearchApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
     Export:
       Name: !Sub 'SearchApiUrl-${Environment}'
   
