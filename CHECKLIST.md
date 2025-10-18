@@ -4,12 +4,12 @@
 
 ### Configuración
 - [x] `template.yaml` completo con parámetros
-- [x] `samconfig.toml` creado
-- [ ] Configurar valores en `samconfig.toml`:
-  - [ ] `AtlasUri` (MongoDB connection string)
-  - [ ] `PostgresHost` (RDS endpoint)
-  - [ ] `PostgresPassword` (RDS password)
-  - [ ] `CorsAllowOrigin` (frontend URL)
+- [x] GitHub Actions workflow creado (`.github/workflows/deploy-search-api.yml`)
+- [ ] Configurar GitHub Secrets en el repositorio:
+  - [ ] `ATLAS_URI` (MongoDB connection string)
+  - [ ] `POSTGRES_HOST` (RDS endpoint: `learnia-postgres.criy8e4i62gn.us-east-2.rds.amazonaws.com`)
+  - [ ] `POSTGRES_PASSWORD` (RDS password)
+  - CORS: Hardcoded en workflow como `https://www.learn-ia.app`
 
 ### Archivos Requeridos
 - [x] `src/search_api_lambda.py`
@@ -31,19 +31,46 @@
 
 ## Despliegue
 
+### Método 1: GitHub Actions (RECOMENDADO)
+
+1. **Configurar GitHub Secrets**:
+   - Ve a: `Settings → Secrets and variables → Actions → New repository secret`
+   - Agrega:
+     - `ATLAS_URI`: `mongodb+srv://usuario:password@cluster.mongodb.net`
+     - `POSTGRES_HOST`: `learnia-postgres.criy8e4i62gn.us-east-2.rds.amazonaws.com`
+     - `POSTGRES_PASSWORD`: Tu password de PostgreSQL
+
+2. **Push a main**:
+   ```bash
+   git add .
+   git commit -m "feat: add search api lambda"
+   git push origin main
+   ```
+
+3. **Verificar Deploy**:
+   - Ve a `Actions` tab en GitHub
+   - Verifica que el workflow `Deploy Search API Lambda` corre exitosamente
+
+### Método 2: Deploy Manual (para testing)
+
 ```bash
-# 1. Editar samconfig.toml con valores reales
-nano samconfig.toml
-
-# 2. Build
 cd /home/raul/Documents/Proyecto_Integrador_2/Repositorios/search-api-lambda
-sam build
 
-# 3. Deploy
-sam deploy --guided
+# Build
+sam build --use-container
 
-# O sin confirmación:
-sam deploy
+# Deploy (reemplaza valores)
+sam deploy \
+  --stack-name learnia-search-api-dev \
+  --region us-east-2 \
+  --s3-bucket learnia-sam-artifacts-us-east-2 \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+    Environment=dev \
+    AtlasUri="mongodb+srv://..." \
+    PostgresHost="learnia-postgres.criy8e4i62gn.us-east-2.rds.amazonaws.com" \
+    PostgresPassword="tu-password" \
+    CorsAllowOrigin="https://www.learn-ia.app"
 ```
 
 ## Post-Despliegue

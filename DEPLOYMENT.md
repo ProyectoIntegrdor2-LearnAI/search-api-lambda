@@ -58,28 +58,51 @@ search-api-lambda/
 
 ## Despliegue
 
-### Build
+### Despliegue Automático con GitHub Actions
+
+Este proyecto usa GitHub Actions para CI/CD automático.
+
+#### 1. Configurar GitHub Secrets
+
+En el repositorio de GitHub:
+- `Settings → Secrets and variables → Actions`
+- Agregar los siguientes secrets:
+  - `ATLAS_URI`: Connection string de MongoDB Atlas
+  - `POSTGRES_HOST`: `learnia-postgres.criy8e4i62gn.us-east-2.rds.amazonaws.com`
+  - `POSTGRES_PASSWORD`: Password de PostgreSQL RDS
+
+#### 2. Push para Deploy
 
 ```bash
-sam build
+git add .
+git commit -m "feat: update search api"
+git push origin main
 ```
 
-### Deploy
+El workflow se ejecutará automáticamente y desplegará la Lambda.
+
+### Despliegue Manual (Opcional)
+
+Para testing local o despliegue manual:
 
 ```bash
-sam deploy --guided
-```
+cd /home/raul/Documents/Proyecto_Integrador_2/Repositorios/search-api-lambda
 
-O usando samconfig.toml:
+# Build con container
+sam build --use-container
 
-```bash
-sam deploy
-```
-
-### Deploy Rápido (sin confirmación)
-
-```bash
-sam build && sam deploy --no-confirm-changeset
+# Deploy
+sam deploy \
+  --stack-name learnia-search-api-dev \
+  --region us-east-2 \
+  --s3-bucket learnia-sam-artifacts-us-east-2 \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+    Environment=dev \
+    AtlasUri="mongodb+srv://usuario:password@cluster.mongodb.net" \
+    PostgresHost="learnia-postgres.criy8e4i62gn.us-east-2.rds.amazonaws.com" \
+    PostgresPassword="tu-password-postgres" \
+    CorsAllowOrigin="https://www.learn-ia.app"
 ```
 
 ## Testing Local
