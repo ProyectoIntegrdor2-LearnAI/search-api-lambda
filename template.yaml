@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: LearnIA Search API Lambda
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    Description: Ambiente de despliegue (dev, prod)
+  
+  AtlasUri:
+    Type: String
+    Description: URI de conexión a MongoDB Atlas
+    NoEcho: true
+  
+  PostgresHost:
+    Type: String
+    Description: Host de PostgreSQL RDS
+  
+  PostgresPassword:
+    Type: String
+    Description: Password de PostgreSQL
+    NoEcho: true
+  
+  CorsAllowOrigin:
+    Type: String
+    Default: 'https://www.learn-ia.app'
+    Description: Origen permitido para CORS
+
+Globals:
+  Api:
+    Cors:
+      AllowOrigin: !Sub "'${CorsAllowOrigin}'"
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'Content-Type,Authorization,X-User-Id'"
+
+Resources:
+  SearchApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub learnia-search-api-${Environment}
+      Runtime: python3.11
+      Handler: search_api_lambda.lambda_handler
+      CodeUri: src/
+      Timeout: 30
+      MemorySize: 512
+      Layers:
+        - !Ref CertificatesLayer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          # MongoDB
+          ATLAS_URI: !Ref AtlasUri
+          DATABASE_NAME: learnia_db
+          COLLECTION_NAME: courses
+          ATLAS_SEARCH_INDEX: default
+          # PostgreSQL
+          POSTGRES_HOST: !Ref PostgresHost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: !Ref PostgresPassword
+          DB_SSL: "true"
+          DB_CA_PATH: /opt/certs/rds-us-east-2-bundle.pem
+          # Bedrock
+          EMBEDDING_MODEL: amazon.titan-embed-text-v2:0
+          EMBEDDING_DIM: 1024
+          # CORS
+          CORS_ALLOW_ORIGIN: !Ref CorsAllowOrigin
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - arn:aws:bedrock:us-east-2::foundation-model/amazon.titan-embed-text-v2:0
+            - Effect: Allow
+              Action:
+                - cloudwatch:PutMetricData
+              Resource: '*'
+      Events:
+        SearchApi:
+          Type: HttpApi
+          Properties:
+            Path: /api/{proxy+}
+            Method: ANY
+            ApiId: !Ref SearchHttpApi
+        OptionsApi:
+          Type: HttpApi
+          Properties:
+            Path: /api/{proxy+}
+            Method: OPTIONS
+            ApiId: !Ref SearchHttpApi
+
+  SearchHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: Prod
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref CorsAllowOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-User-Id
+        MaxAge: 600
+
+  CertificatesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub learnia-rds-ca-search-${Environment}
+      Description: RDS CA bundle for SSL connections
+      ContentUri: layer-certs/
+      CompatibleRuntimes:
+        - python3.11
+
+Outputs:
+  SearchApiUrl:
+    Description: URL base del API de búsqueda
+    Value: !Sub 'https://${SearchHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: !Sub 'SearchApiUrl-${Environment}'
+  
+  SearchApiFunctionArn:
+    Description: ARN de la función Lambda
+    Value: !GetAtt SearchApiFunction.Arn
+    Export:
+      Name: !Sub 'SearchApiFunctionArn-${Environment}'

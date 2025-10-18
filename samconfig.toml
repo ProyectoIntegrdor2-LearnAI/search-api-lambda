@@ -1,0 +1,24 @@
+# SAM Configuration for Search API Lambda
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "learnia-search-api-dev"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+region = "us-east-2"
+parameter_overrides = [
+    "Environment=dev",
+    # Estos valores deben ser configurados antes del despliegue:
+    # "AtlasUri=mongodb+srv://...",
+    # "PostgresHost=learnia-postgres.criy8e4i62gn.us-east-2.rds.amazonaws.com",
+    # "PostgresPassword=tu-password-aqui",
+    # "CorsAllowOrigin=https://www.learn-ia.app"
+]
