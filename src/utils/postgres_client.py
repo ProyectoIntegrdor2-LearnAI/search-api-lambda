@@ -6,7 +6,7 @@ import logging
 import os
 import uuid
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import psycopg2
 from psycopg2 import pool
@@ -83,6 +83,18 @@ class FavoritesRepository:
                 cur.execute(statement, (user_id, course_id))
                 conn.commit()
                 return False
+
+    def list_favorites(self, user_id: str) -> List[Dict[str, Any]]:
+        query = sql.SQL(
+            "SELECT mongodb_course_id, created_at FROM {} WHERE user_id = %s ORDER BY created_at DESC"
+        ).format(sql.Identifier(self._table))
+        with self.connection() as conn, conn.cursor() as cur:
+            cur.execute(query, (user_id,))
+            rows = cur.fetchall()
+        return [
+            {"course_id": row[0], "created_at": row[1]}
+            for row in rows
+        ]
 
 
 _favorites_repo: Optional[FavoritesRepository] = None

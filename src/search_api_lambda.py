@@ -140,6 +140,12 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
             limit = _get_query_param(event, "limit", default=12)
             return _build_response(200, _handle_get_trending(limit), cors_headers)
 
+        if method == "GET" and path == "/api/courses/favorites":
+            user_id = _extract_user_id(event)
+            if not user_id:
+                raise SearchApiError("No se encontró el usuario autenticado", 401)
+            return _build_response(200, _handle_get_favorites(user_id), cors_headers)
+
         course_match = re.match(r"^/api/courses/(?P<course_id>[^/]+)$", path)
         if method == "GET" and course_match:
             course_id = course_match.group("course_id")
@@ -195,6 +201,44 @@ def _handle_get_course(course_id: str) -> Dict[str, Any]:
     return {"course": course}
 
 
+def _handle_get_favorites(user_id: str) -> Dict[str, Any]:
+    favorites_repo = get_favorites_repository()
+    entries = favorites_repo.list_favorites(user_id)
+    if not entries:
+        return {"favorites": [], "total": 0}
+
+    mongo = get_mongo_client()
+    favorites: List[Dict[str, Any]] = []
+
+    for entry in entries:
+        course_id = entry["course_id"]
+        raw_added = entry.get("created_at")
+        added_at = raw_added.isoformat() if hasattr(raw_added, "isoformat") else raw_added
+        course = None
+        try:
+            course = mongo.get_course_by_id(course_id)
+        except Exception as exc:  # pragma: no cover - log and continue
+            logger.warning("No se pudo obtener curso %s de favoritos: %s", course_id, exc)
+
+        if course:
+            favorites.append(
+                {
+                    "course_id": course_id,
+                    "added_at": added_at,
+                    "course": course,
+                }
+            )
+        else:
+            favorites.append(
+                {
+                    "course_id": course_id,
+                    "added_at": added_at,
+                }
+            )
+
+    return {"favorites": favorites, "total": len(favorites)}
+
+
 def _handle_get_categories() -> Dict[str, Any]:
     mongo = get_mongo_client()
     categories = mongo.get_categories()
@@ -222,9 +266,16 @@ def _handle_toggle_favorite(user_id: str, course_id: str, payload: Dict[str, Any
         is_current_favorite = favorites_repo.is_favorite(user_id, course_id)
         is_favorite = favorites_repo.set_favorite(user_id, course_id, should_favorite=not is_current_favorite)
 
+    course = None
+    try:
+        course = get_mongo_client().get_course_by_id(course_id)
+    except Exception as exc:  # pragma: no cover - log and continue
+        logger.warning("No se pudo obtener curso %s al actualizar favorito: %s", course_id, exc)
+
     return {
         "course_id": course_id,
         "is_favorite": is_favorite,
+        "course": course,
     }
 
 
