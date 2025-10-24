@@ -56,7 +56,7 @@ class FavoritesRepository:
             self._pool.putconn(conn)
 
     def is_favorite(self, user_id: str, course_id: str) -> bool:
-        query = sql.SQL("SELECT 1 FROM {} WHERE user_id = %s AND course_id = %s LIMIT 1").format(
+        query = sql.SQL("SELECT 1 FROM {} WHERE user_id = %s AND mongodb_course_id = %s LIMIT 1").format(
             sql.Identifier(self._table)
         )
         with self.connection() as conn, conn.cursor() as cur:
@@ -69,15 +69,15 @@ class FavoritesRepository:
                 if should_favorite:
                     statement = sql.SQL(
                         """
-                        INSERT INTO {} (favorite_id, user_id, course_id, created_at)
+                        INSERT INTO {} (favorite_id, user_id, mongodb_course_id, created_at)
                         VALUES (%s, %s, %s, NOW())
-                        ON CONFLICT (user_id, course_id) DO NOTHING
+                        ON CONFLICT (user_id, mongodb_course_id) DO NOTHING
                         """
                     ).format(sql.Identifier(self._table))
                     cur.execute(statement, (str(uuid.uuid4()), user_id, course_id))
                     conn.commit()
                     return True
-                statement = sql.SQL("DELETE FROM {} WHERE user_id = %s AND course_id = %s").format(
+                statement = sql.SQL("DELETE FROM {} WHERE user_id = %s AND mongodb_course_id = %s").format(
                     sql.Identifier(self._table)
                 )
                 cur.execute(statement, (user_id, course_id))
