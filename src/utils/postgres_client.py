@@ -26,7 +26,7 @@ class FavoritesRepository:
         self._user = os.getenv("POSTGRES_USER", "postgres")
         self._port = int(os.getenv("POSTGRES_PORT", "5432"))
         self._ssl_enabled = os.getenv("DB_SSL", "false").lower() == "true"
-        table = os.getenv("FAVORITES_TABLE", "user_course_favorites")
+        table = os.getenv("FAVORITES_TABLE", "user_favorites")
         if not table.replace("_", "").isalnum():
             raise ValueError("FAVORITES_TABLE contiene caracteres inválidos")
         self._table = table
